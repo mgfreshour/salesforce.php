@@ -1,0 +1,117 @@
+<?php
+
+class testable_salesforce_TableLayout extends salesforce_TableLayout { 
+    protected function getParser() {
+        return isset($this->parser) ? $this->parser : parent::getParser();
+    }
+    
+    public function call($function, $arg1=null, $arg2=null, $arg3=null, $arg4=null, $arg5=null) {
+        return $this->$function($arg1, $arg2, $arg3, $arg4, $arg5);
+    }
+}
+
+class salesforce_TableLayoutTest extends salesforce_TableTestAbstract {
+    var $layout_describes = array();
+
+    public function setUp() {
+        salesforce_Base::setSession(array());
+        $this->conn = $this->getMock('SforcePartnerClient');
+        salesforce_TableLayout::clearAllLayouts();
+        salesforce_Table::clearTableMetadata();
+        
+        $this->table_name = 'Event';
+        $this->setupTableData($this->table_name);
+        $this->setupLayoutData($this->table_name);
+
+        $this->table = new salesforce_Table($this->table_name);
+        $this->testee = new testable_salesforce_TableLayout($this->table);
+    }
+    
+    protected function _testComponentDisplay($cmp, $editable, $value, $expected) {
+        // Given
+        $function = "_get{$cmp['type']}ComponentDisplay";
+        
+        // When
+        $ret = $this->testee->call($function, $cmp, $value, $editable);
+        
+        // Then
+        $this->assertEquals($expected, $ret);
+    }
+
+
+    //--------------------------------------------------------------------------
+    // Tests
+    //--------------------------------------------------------------------------
+
+    
+    public function test_LayoutColumnDisplay_SingleComponent() {
+        $col = array ('columnLabel' => array ( array ( 'label' => 'fieldLabel', 'type' => 'textarea', 'field'=>'Description' ),
+                                               'editable' => true
+                     ));
+        
+        $this->table->description = 'description value';
+        $this->testee->setTable($this->table);
+        $ret = $this->testee->getLayoutColumnDisplay($col);
+        
+        $expected = '<td>columnLabel<label for="Description">fieldLabel</label><textarea name="Description">description value</textarea></td>';
+        
+        $this->assertEquals($expected, $ret);
+    }
+    
+    public function test_LayoutColumnDisplay_ThreeComponent() {
+        $col = array ('columnLabel' => array ( array ( 'label' => 'fieldOneLabel', 'type' => 'string', 'field'=>'Description' ),
+                                               array ( 'type' => 'seperator', 'value'=>' SEP ' ),
+                                               array ( 'label' => 'fieldTwoLabel', 'type' => 'datetime', 'field'=>'Location' ),
+                                               'editable' => true
+                     ));
+        
+        $this->table->description = 'description value';
+        $this->table->location = 'location value';
+        $this->testee->setTable($this->table);
+        $ret = $this->testee->getLayoutColumnDisplay($col);
+        
+        $expected = '<td>columnLabel'
+                   .'<label for="Description">fieldOneLabel</label><input type="textbox" name="Description" value="description value" />'
+                   .' SEP '
+                   .'<label for="Location">fieldTwoLabel</label><input type="textbox" name="Location" value="location value" />'
+                   .'</td>';
+        $this->assertEquals($expected, $ret);
+    }
+    
+    public function test_SeperatorDisplay() {
+        $cmp = array ( 'type' => 'seperator', 'value'=>' SEP ' );        
+        $expected = ' SEP ';
+        $value = 'Test Value';
+        $this->_testComponentDisplay($cmp, true, $value, $expected);
+        $this->_testComponentDisplay($cmp, false, $value, $expected);
+    }
+
+    public function test_StringDisplay() {
+        $cmp = array ( 'label' => 'fieldOneLabel', 'type' => 'string', 'field'=>'TestFieldName' );
+        $value = 'Test Value';
+        
+        $expected = '<label for="TestFieldName">fieldOneLabel</label><input type="textbox" name="TestFieldName" value="Test Value" />';
+        $this->_testComponentDisplay($cmp, true, $value, $expected);
+        
+        $expected = 'fieldOneLabel : Test Value';
+        $this->_testComponentDisplay($cmp, false, $value, $expected);
+    }
+
+    public function test_BooleanDisplay() {
+        $cmp = array ( 'label' => 'fieldOneLabel', 'type' => 'boolean', 'field'=>'TestFieldName' );
+        $value = 'true';
+        
+        $expected = '<label for="TestFieldName">fieldOneLabel</label><input type="checkbox" name="TestFieldName" checked="checked" />';
+        $this->_testComponentDisplay($cmp, true, 'true', $expected);
+        
+        $expected = '<label for="TestFieldName">fieldOneLabel</label><input type="checkbox" name="TestFieldName" />';
+        $this->_testComponentDisplay($cmp, true, 'false', $expected);
+        
+        $expected = '<label for="TestFieldName">fieldOneLabel</label><input readonly="true" type="checkbox" name="TestFieldName" checked="checked" />';
+        $this->_testComponentDisplay($cmp, true, 'true', $expected);
+        
+        $expected = '<label for="TestFieldName">fieldOneLabel</label><input readonly="true" type="checkbox" name="TestFieldName" />';
+        $this->_testComponentDisplay($cmp, true, 'false', $expected);
+    }
+
+}
