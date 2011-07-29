@@ -3,6 +3,7 @@
   <a href="?action=describe&table=<?=$this->tplData['table']?>">Describe</a>
 | <a href="?action=layout&table=<?=$this->tplData['table']?>">Layout</a>
 | <a href="?action=browse&table=<?=$this->tplData['table']?>">Browse</a>
+-- <a href="?action=edit&table=<?=$this->tplData['table']?>&id=<?=$_REQUEST['id']?>">Edit</a>
 <br />
 
 <style>

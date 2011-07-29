@@ -25,6 +25,25 @@ class salesforce_Table extends salesforce_Base {
     protected $_field_name_mapping = array();
 
     /**
+     * Contains the field name that is the name of the object..  err, the field
+     *  used when one needs a one-line display of the object
+     * @var string
+     */
+    protected $_name_field;
+
+    /**
+     * Contains all the loaded children for the object (lazy-loaded)
+     * @var array
+     */
+    protected $_children = array();
+
+    /**
+     * Mapping between relation name and child name
+     * @var array
+     */
+    protected $_child_relation_mapping = array();
+
+    /**
      * Contains the actual values of fields for a tuple. 
      * @var array
      */
@@ -97,6 +116,14 @@ class salesforce_Table extends salesforce_Base {
             if ($field->createable && !$field->nillable && !$field->defaultedOnCreate) {
                 $this->_fields_required[] = $field->name;
             }
+
+            if ($field->nameField == true) {
+                $this->_name_field = $field->name;
+            }
+
+            if ($field->type == 'reference') {
+              $this->_child_relation_mapping[$field->relationshipName] = $field->name;
+            }
         }
         
         // Store the relations
@@ -131,16 +158,60 @@ class salesforce_Table extends salesforce_Base {
     }
 
     /**
+     * Returns the short displayable name for the tuple
+     * @return string
+     */
+    public function getName() {
+        return $this->__get($this->_name_field);
+    }
+    public function __toString() { return $this->getName(); }
+
+    /**
+     * Returns the child tuple for relation.  NULL if not found.
+     * @param string $relationName
+     * @return salesforce_Table
+     */
+    public function getChild($relationName) {
+        if (!array_key_exists($relationName, $this->_child_relation_mapping)) {
+            throw new InvalidArgumentException("Unable to find Relation '$relationName'");
+        }
+        try {
+          if (!isset($this->_children[$relationName])) {
+              $field_name = $this->_child_relation_mapping[$relationName];
+              $child = new salesforce_Table($this->_field_descriptions[$field_name]->referenceTo);
+              $child->getById($this->_field_data[strtolower($field_name)]);
+              $this->_children[$relationName] = $child;
+          }
+          return $this->_children[$relationName];
+        } catch (Exception $e) {
+          error_log("salesforce_Table({$this->_table_name})::getChild($relationName) - ".$e->getMessage());
+          return null;
+        }
+    }
+
+    /**
      * Attempts to get this tuple's field data
      * @param string $name
      * @return mixed
      */
     public function  __get($name) {
-        if (in_array(strtolower($name), $this->getFieldNames(true))) {
-            return @$this->_field_data[strtolower($name)];
-        } else {
+        if (!in_array(strtolower($name), $this->getFieldNames(true))) {
             throw new BadMethodCallException("Attempted to get invalid field [$name]");
         }
+
+        //var_dump($this->_field_descriptions[$name]);
+        $field_desc = $this->_field_descriptions[$name];
+        if ($field_desc->type == 'reference') {
+          $child = $this->getChild($field_desc->relationshipName);
+          if ($child != null) {
+            return $child->getName();
+          } else {
+            return '';
+          }
+        }
+
+        return @$this->_field_data[strtolower($name)];
+
     }
 
     /**
