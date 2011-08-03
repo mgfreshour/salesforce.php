@@ -48,7 +48,8 @@ class salesforceExplorerController {
      */
     protected function _redirect($url) {
         if ($url[0] != '/') {
-            header("Location: /admin/salesforce_explorer.php$url");
+            $url = $_SERVER['PHP_SELF'].$url;
+            header("Location: $url");
         } else {
             header("Location:$url");
         }

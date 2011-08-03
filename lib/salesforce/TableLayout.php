@@ -70,10 +70,10 @@ class salesforce_TableLayout extends salesforce_Base {
      * @param array $component
      * @param mixed $value 
      */
-    public function getComponentDisplay($component, $value, $editable) {
+    public function getComponentDisplay($component, $value, $display_value, $editable) {
         $method_name = "_get{$component['type']}ComponentDisplay";
         if (method_exists($this, $method_name)) {
-            return $this->$method_name($component, $value, $editable);
+            return $this->$method_name($component, $value, $display_value, $editable);
         } else {
             //throw new InvalidArgumentException("Unknown Component Type [{$component['type']}]".var_export($component,1));
         }
@@ -91,8 +91,15 @@ class salesforce_TableLayout extends salesforce_Base {
             $editable = $data['editable'];
             foreach ($data as $cmp) {
                 if (is_array($cmp)) {
-                    $value = isset($cmp['field']) ? $this->_table->{$cmp['field']} : null;
-                    $ret .= $this->getComponentDisplay($cmp, $value, $editable);
+                    $value = $display_value = null;
+                    if (isset($cmp['field'])) {
+                      $field_desc = $this->_table->getFieldDescriptions($cmp['field']);
+                      $value = $display_value = $this->_table->{$cmp['field']};
+                      if ($field_desc->type == 'reference') {
+                          $display_value = $this->_table->getDereference($cmp['field']);
+                      }
+                    }
+                    $ret .= $this->getComponentDisplay($cmp, $value, $display_value, $editable);
                 }
             }
         }
@@ -138,24 +145,24 @@ class salesforce_TableLayout extends salesforce_Base {
     /**
      * String values.
      */
-    protected function _getSeperatorComponentDisplay($component, $value, $editable) {
+    protected function _getSeperatorComponentDisplay($component, $value, $display_value, $editable) {
         return $component['value'];
     }
     /**
      * String values.
      */
-    protected function _getStringComponentDisplay($component, $value, $editable) {
+    protected function _getStringComponentDisplay($component, $value, $display_value, $editable) {
         if ($editable) {
-            $ret = '<label for="'.$component['field'].'">'.$component['label'].'</label><input type="textbox" name="'.$component['field'].'" value="'.$value.'" />';
+            $ret = '<label for="'.$component['field'].'">'.$component['label'].'</label><input type="textbox" name="'.$component['field'].'" value="'.$display_value.'" />';
         } else {
-            $ret = $component['label'].' : '.$value;
+            $ret = $component['label'].' : '.$display_value;
         }
         return $ret;
     }
     /**
      * Boolean (true / false) values.
      */
-    protected function _getBooleanComponentDisplay($component, $value, $editable) {
+    protected function _getBooleanComponentDisplay($component, $value, $display_value, $editable) {
 
         $ret = '<label for="'.$component['field'].'">'.$component['label'].'</label>'
               .'<input type="checkbox" value="true" name="'.$component['field'].'" '.($value == 'true' ? 'checked="checked" ' : '').(!$editable ? 'readonly="true" disabled="disabled" ' : '').'/>';
@@ -165,65 +172,65 @@ class salesforce_TableLayout extends salesforce_Base {
     /**
      * Integer values.
      */
-    protected function _getIntComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getIntComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * Double values.
      */
-    protected function _getDoubleComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getDoubleComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
 
     }
     /**
      * Date values.
      */
-    protected function _getDateComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getDateComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * Date and time values.
      */
-    protected function _getDatetimeComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getDatetimeComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * Base64-encoded arbitrary binary data (of type base64Binary). Used for Attachment, Document, and Scontrol objects.
      */
-    protected function _getBase64ComponentDisplay($component, $value, $editable) {
+    protected function _getBase64ComponentDisplay($component, $value, $display_value, $editable) {
         if ($editable) {
             throw new InvalidArgumentException('Base64 Components dont allow Edit!');
         }
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * Primary key field for the object. For information on IDs, see ID Field Type.
      */
-    protected function _getIDComponentDisplay($component, $value, $editable) {
+    protected function _getIDComponentDisplay($component, $value, $display_value, $editable) {
         if ($editable) {
             throw new InvalidArgumentException('ID Components dont allow Edit!');
         }
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * Cross-references to a different object. Analogous to a foreign key field in SQL.
      */
-    protected function _getReferenceComponentDisplay($component, $value, $editable) {
+    protected function _getReferenceComponentDisplay($component, $value, $display_value, $editable) {
         if ($editable) {
             //throw new InvalidArgumentException('Reference Components dont allow Edit!');
         }
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * Currency values.
      */
-    protected function _getCurrencyComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getCurrencyComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * String that is displayed as a multiline text field.
      */
-    protected function _getTextAreaComponentDisplay($component, $value, $editable) {
+    protected function _getTextAreaComponentDisplay($component, $value, $display_value, $editable) {
         if ($editable) {
             $ret = '<label for="'.$component['field'].'">'.$component['label'].'</label><textarea name="'.$component['field'].'">'.$value.'</textarea>';
         } else {
@@ -234,31 +241,31 @@ class salesforce_TableLayout extends salesforce_Base {
     /**
      * Percentage values.
      */
-    protected function _getPercentComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getPercentComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * Phone numbers. Values can include alphabetic characters. Client applications are responsible for phone number formatting.
      */
-    protected function _getPhoneComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getPhoneComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * URL values. Client applications should commonly display these as hyperlinks.
      */
-    protected function _getUrlComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getUrlComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * Email addresses.
      */
-    protected function _getEmailComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getEmailComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * Comboboxes, which provide a set of enumerated values and allow the user to specify a value not in the list.
      */
-    protected function _getComboboxComponentDisplay($component, $value, $editable, $multiple=false) {
+    protected function _getComboboxComponentDisplay($component, $value, $display_value, $editable, $multiple=false) {
         if ($editable) {
             $ret = '<label for="'.$component['field'].'">'.$component['label'].'</label>'
                     .'<select name="'.$component['field'].'"'.($multiple ? ' multiple="multiple"' : '').'>';
@@ -277,20 +284,20 @@ class salesforce_TableLayout extends salesforce_Base {
     /**
      * Single-select picklists, which provide a set of enumerated values from which only one value can be selected.
      */
-    protected function _getPicklistComponentDisplay($component, $value, $editable) {
-        return $this->_getComboboxComponentDisplay($component, $value, $editable);
+    protected function _getPicklistComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getComboboxComponentDisplay($component, $value, $display_value, $editable);
     }
     /**
      * multi-select picklists, which provide a set of enumerated values from which multiple values can be selected.
      */
-    protected function _getMultiPicklistComponentDisplay($component, $value, $editable) {
-        return $this->_getComboboxComponentDisplay($component, $value, $editable, true);
+    protected function _getMultiPicklistComponentDisplay($component, $display_value, $value, $editable) {
+        return $this->_getComboboxComponentDisplay($component, $value, $display_value, $editable, true);
     }
     /**
      * Values can be any of these types: string, picklist, boolean, int, double, percent, ID, date, dateTime, url, or email.
      */
-    protected function _getAnyTypeComponentDisplay($component, $value, $editable) {
-        return $this->_getStringComponentDisplay($component, $value, $editable);
+    protected function _getAnyTypeComponentDisplay($component, $value, $display_value, $editable) {
+        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
     }
 
 

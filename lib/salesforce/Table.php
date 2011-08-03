@@ -10,7 +10,13 @@ class salesforce_Table extends salesforce_Base {
      * @var array
      */
     protected $_field_descriptions = array();
-    public function getFieldDescriptions() { return $this->_field_descriptions; }
+    public function getFieldDescriptions($name = false) {
+      if ($name !== false) {
+        return $this->_field_descriptions[$name];
+      } else {
+        return $this->_field_descriptions;
+      }
+    }
 
     /**
      * List of fields that are required before create can happen
@@ -190,16 +196,15 @@ class salesforce_Table extends salesforce_Base {
     }
 
     /**
-     * Attempts to get this tuple's field data
+     *
      * @param string $name
      * @return mixed
      */
-    public function  __get($name) {
+    public function getDereference($name) {
         if (!in_array(strtolower($name), $this->getFieldNames(true))) {
             throw new BadMethodCallException("Attempted to get invalid field [$name]");
         }
 
-        //var_dump($this->_field_descriptions[$name]);
         $field_desc = $this->_field_descriptions[$name];
         if ($field_desc->type == 'reference') {
           $child = $this->getChild($field_desc->relationshipName);
@@ -211,7 +216,18 @@ class salesforce_Table extends salesforce_Base {
         }
 
         return @$this->_field_data[strtolower($name)];
+    }
 
+    /**
+     * Attempts to get this tuple's field data
+     * @param string $name
+     * @return mixed
+     */
+    public function  __get($name) {
+        if (!in_array(strtolower($name), $this->getFieldNames(true))) {
+            throw new BadMethodCallException("Attempted to get invalid field [$name]");
+        }
+        return @$this->_field_data[strtolower($name)];
     }
 
     /**
