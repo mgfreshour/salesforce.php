@@ -41,13 +41,13 @@ class salesforce_Table extends salesforce_Base {
      * Contains all the loaded children for the object (lazy-loaded)
      * @var array
      */
-    protected $_children = array();
+    protected $_parents = array();
 
     /**
      * Mapping between relation name and child name
      * @var array
      */
-    protected $_child_relation_mapping = array();
+    protected $_parent_relation_mapping = array();
 
     /**
      * Contains the actual values of fields for a tuple. 
@@ -103,7 +103,6 @@ class salesforce_Table extends salesforce_Base {
      * @return array
      */
     protected function _requestMetadata($table_name) {
-      error_log('mgf - '.$table_name);
         if (!isset(self::$_table_descriptions[$table_name])) {
             self::$_table_descriptions[$table_name] = $this->getConn()->describeSObject($table_name);
         }
@@ -129,7 +128,7 @@ class salesforce_Table extends salesforce_Base {
             }
 
             if ($field->type == 'reference') {
-              $this->_child_relation_mapping[$field->relationshipName] = $field->name;
+              $this->_parent_relation_mapping[$field->relationshipName] = $field->name;
             }
         }
         
@@ -174,28 +173,28 @@ class salesforce_Table extends salesforce_Base {
     public function __toString() { return $this->getName(); }
 
     /**
-     * Returns the child tuple for relation.  NULL if not found.
+     * Returns the parent tuple for relation.  NULL if not found.
      * @param string $relationName
      * @return salesforce_Table
      */
-    public function getChild($relationName) {
-        if (!array_key_exists($relationName, $this->_child_relation_mapping)) {
+    public function getParent($relationName) {
+        if (!array_key_exists($relationName, $this->_parent_relation_mapping)) {
             throw new InvalidArgumentException("Unable to find Relation '$relationName'");
         }
 
-        if (!isset($this->_children[$relationName])) {
-            $field_name = $this->_child_relation_mapping[$relationName];
+        if (!isset($this->_parents[$relationName])) {
+            $field_name = $this->_parent_relation_mapping[$relationName];
             $reference_tos = is_array($this->_field_descriptions[$field_name]->referenceTo) ? $this->_field_descriptions[$field_name]->referenceTo : array($this->_field_descriptions[$field_name]->referenceTo);
             foreach ($reference_tos as $ref) {
                 try {
                     $child = new salesforce_Table($ref);
                     $child->getById($this->_field_data[strtolower($field_name)]);
-                    $this->_children[$relationName] = $child;
+                    $this->_parents[$relationName] = $child;
                     break;
                 } catch (Exception $e) {}
             }
         }
-        return $this->_children[$relationName];
+        return $this->_parents[$relationName];
     }
 
     /**
@@ -210,7 +209,7 @@ class salesforce_Table extends salesforce_Base {
 
         $field_desc = $this->_field_descriptions[$name];
         if ($field_desc->type == 'reference') {
-          $child = $this->getChild($field_desc->relationshipName);
+          $child = $this->getParent($field_desc->relationshipName);
           if ($child != null) {
             return $child->getName();
           } else {
