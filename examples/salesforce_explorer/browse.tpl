@@ -12,8 +12,12 @@
     <tr>
         <td><a href="?action=view&table=<?=$this->tplData['table']?>&id=<?=$row->Id?>">View</a></td>
         <td><a href="?action=edit&table=<?=$this->tplData['table']?>&id=<?=$row->Id?>">Edit</a></td>
-        <? foreach($row->getAllFields() as $fld): ?>
-            <td><?=$fld?></td>
+        <? foreach($row->getAllFields() as $name => $fld): ?>
+            <? if ($row->getFieldDescriptions($name)->type == 'reference'): ?>
+              <td><?=$row->getDereference($name)?></td>
+            <? else: ?>
+              <td><?=$fld?></td>
+            <? endif; ?>
         <? endforeach; ?>
     </tr>
     <? endforeach; ?>

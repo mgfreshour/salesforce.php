@@ -12,6 +12,7 @@ class salesforce_Table extends salesforce_Base {
     protected $_field_descriptions = array();
     public function getFieldDescriptions($name = false) {
       if ($name !== false) {
+        $name = $this->getProperFieldName($name);
         return $this->_field_descriptions[$name];
       } else {
         return $this->_field_descriptions;
@@ -154,6 +155,15 @@ class salesforce_Table extends salesforce_Base {
             return array_keys($this->_field_descriptions);
         }
     }
+
+    /**
+     * Returns the proper (capitalization-wise) name of a field
+     * @param string $fieldname
+     * @return string
+     */
+    public function getProperFieldName($fieldname) {
+      return $this->_field_name_mapping[strtolower($fieldname)];
+    }
     
     /**
      * Returns an array of table names this table is related to
@@ -184,7 +194,7 @@ class salesforce_Table extends salesforce_Base {
 
         if (!isset($this->_parents[$relationName])) {
             $field_name = $this->_parent_relation_mapping[$relationName];
-            $reference_tos = is_array($this->_field_descriptions[$field_name]->referenceTo) ? $this->_field_descriptions[$field_name]->referenceTo : array($this->_field_descriptions[$field_name]->referenceTo);
+            $reference_tos = is_array($this->getFieldDescriptions($field_name)->referenceTo) ? $this->getFieldDescriptions($field_name)->referenceTo : array($this->getFieldDescriptions($field_name)->referenceTo);
             foreach ($reference_tos as $ref) {
                 try {
                     $child = new salesforce_Table($ref);
@@ -207,7 +217,7 @@ class salesforce_Table extends salesforce_Base {
             throw new BadMethodCallException("Attempted to get invalid field [$name]");
         }
 
-        $field_desc = $this->_field_descriptions[$name];
+        $field_desc = $this->getFieldDescriptions($name);
         if ($field_desc->type == 'reference') {
           $child = $this->getParent($field_desc->relationshipName);
           if ($child != null) {

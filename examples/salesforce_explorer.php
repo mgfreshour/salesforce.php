@@ -12,7 +12,7 @@ $ctl->run($_REQUEST);
     echo '<h1>', $e->getMessage(), '</h1>', '<a href="?">Back to Home</a>';
 }
 echo '<br /><br /><br />';
-var_dump($_REQUEST);
+
 
 class salesforceExplorerController {
     function run($params) {
@@ -106,8 +106,6 @@ class salesforceExplorerController {
             $this->tplData['edit_layout'] = $layout->getLayoutDisplay("editLayoutSections");
             $this->tplData['table'] = $params['table'];
             $this->tpl('layout');
-            echo '<pre>';
-            var_export($layout);
         } catch (Exception $e) {
             echo '<h2>ERROR : '.$e->getMessage().'</h2><a href="?">Back to Home</a>';
         }
