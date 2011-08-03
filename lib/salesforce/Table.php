@@ -103,6 +103,7 @@ class salesforce_Table extends salesforce_Base {
      * @return array
      */
     protected function _requestMetadata($table_name) {
+      error_log('mgf - '.$table_name);
         if (!isset(self::$_table_descriptions[$table_name])) {
             self::$_table_descriptions[$table_name] = $this->getConn()->describeSObject($table_name);
         }
@@ -181,18 +182,20 @@ class salesforce_Table extends salesforce_Base {
         if (!array_key_exists($relationName, $this->_child_relation_mapping)) {
             throw new InvalidArgumentException("Unable to find Relation '$relationName'");
         }
-        try {
-          if (!isset($this->_children[$relationName])) {
-              $field_name = $this->_child_relation_mapping[$relationName];
-              $child = new salesforce_Table($this->_field_descriptions[$field_name]->referenceTo);
-              $child->getById($this->_field_data[strtolower($field_name)]);
-              $this->_children[$relationName] = $child;
-          }
-          return $this->_children[$relationName];
-        } catch (Exception $e) {
-          error_log("salesforce_Table({$this->_table_name})::getChild($relationName) - ".$e->getMessage());
-          return null;
+
+        if (!isset($this->_children[$relationName])) {
+            $field_name = $this->_child_relation_mapping[$relationName];
+            $reference_tos = is_array($this->_field_descriptions[$field_name]->referenceTo) ? $this->_field_descriptions[$field_name]->referenceTo : array($this->_field_descriptions[$field_name]->referenceTo);
+            foreach ($reference_tos as $ref) {
+                try {
+                    $child = new salesforce_Table($ref);
+                    $child->getById($this->_field_data[strtolower($field_name)]);
+                    $this->_children[$relationName] = $child;
+                    break;
+                } catch (Exception $e) {}
+            }
         }
+        return $this->_children[$relationName];
     }
 
     /**

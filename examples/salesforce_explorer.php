@@ -104,8 +104,10 @@ class salesforceExplorerController {
             $layout = new salesforce_TableLayout($table);
             $this->tplData['detail_layout'] = $layout->getLayoutDisplay("detailLayoutSections");
             $this->tplData['edit_layout'] = $layout->getLayoutDisplay("editLayoutSections");
-        $this->tplData['table'] = $params['table'];
+            $this->tplData['table'] = $params['table'];
             $this->tpl('layout');
+            echo '<pre>';
+            var_export($layout);
         } catch (Exception $e) {
             echo '<h2>ERROR : '.$e->getMessage().'</h2><a href="?">Back to Home</a>';
         }

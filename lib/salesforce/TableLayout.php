@@ -81,7 +81,7 @@ class salesforce_TableLayout extends salesforce_Base {
     
     /**
      * 
-     * @param array $col 
+     * @param array $col
      */
     public function getLayoutColumnDisplay($col) {
         $ret = '<td>';
@@ -219,7 +219,7 @@ class salesforce_TableLayout extends salesforce_Base {
         if ($editable) {
             //throw new InvalidArgumentException('Reference Components dont allow Edit!');
         }
-        return $this->_getStringComponentDisplay($component, $value, $display_value, $editable);
+        return $this->_getStringComponentDisplay($component, $value, $display_value, false /*$editable*/);
     }
     /**
      * Currency values.
